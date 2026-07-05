@@ -2,13 +2,13 @@
 
 # BazaarPlusPlus
 
-**因热爱而生** · 为 [《The Bazaar》](https://www.playthebazaar.com) 打造的 BepInEx 模组与桌面安装器
+**因热爱而生** · 为 [《The Bazaar》](https://www.playthebazaar.com) 打造的 BepInEx 模组、桌面安装器与 Steam Deck 插件
 
 [English](README_en.md) · [官网](https://bazaarplusplus.com) · [下载](https://bazaarplusplus.com/download) · [使用教程](https://bazaarplusplus.com/tutorial) · [Release Notes](https://github.com/cauyxy/BazaarPlusPlus/releases) · [Ko-fi](https://ko-fi.com/cauyxy)
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Steam%20Deck-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
@@ -18,7 +18,7 @@
 
 ---
 
-BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 BepInEx 模组提供卡牌图鉴、对局历史、战斗回放、Tooltip 预览、匿名模式、中文术语等功能；桌面安装器负责下载、安装、修复、自动更新和直播叠层。
+BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 BepInEx 模组提供卡牌图鉴、对局历史、战斗回放、Tooltip 预览、匿名模式、中文术语等功能；桌面安装器负责 Windows / macOS；仓库根目录的 Decky Loader 插件负责 Steam Deck 上的安装、更新、修复和卸载。
 
 普通玩家建议直接使用 [下载页](https://bazaarplusplus.com/download) 的安装器；本仓库面向想了解实现、提交改动或自行构建的开发者。
 
@@ -32,6 +32,17 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 4. 在主菜单确认「卡牌图鉴」按钮出现，且底部版本信息显示 `BPP version` 字样。
 
 详细教程、快捷键和功能说明见 [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial)。
+
+### Steam Deck（Decky Loader）
+
+1. 先安装 Steam 版《The Bazaar》（App ID `1617400`），启动一次后完全退出游戏。
+2. 安装 [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)，并在开发者设置中启用从 ZIP 安装插件。
+3. 从本仓库源码运行 `pnpm install && pnpm run bundle`，把 `out/BazaarPlusPlus-*.zip` 复制到 Steam Deck 后通过 Decky 安装。
+4. 打开快捷菜单中的 BazaarPlusPlus，选择「安装 BazaarPlusPlus」。
+
+插件会自动查找内置存储和 SD 卡中的 Steam 库，从官方 BazaarPlusPlus GitHub Release 下载最新版 Windows payload，执行 SHA-256 校验，并配置 Proton 所需的 `WINEDLLOVERRIDES="winhttp=n,b"` 启动参数。首次安装约下载 70 MB；安装、修复、重置或卸载前必须先退出游戏。
+
+如需移除，请先在 BazaarPlusPlus 面板中点击「卸载模组」，让插件同时恢复 Steam 启动参数；直接删除 Decky 插件不会删除已经写入游戏目录的模组文件。
 
 ## 功能概览
 
@@ -58,6 +69,10 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 ```
 .
+├── main.py                                   # Decky Python 后端：检测、下载与安装
+├── src/index.tsx                             # Steam Deck 快捷菜单界面
+├── plugin.json / package.json                # Decky 插件元数据与构建配置
+├── scripts/build-plugin.sh                   # 生成可安装的 Decky ZIP
 ├── bazaarplusplus-mod/                       # BepInEx 模组源码
 │   ├── run.sh                                # 常用 build/test/format/decompile 入口
 │   └── src/
@@ -82,7 +97,19 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 - **模组**：.NET SDK 8+，以及本机 Steam 版《The Bazaar》（用于解析游戏程序集引用）。
 - **安装器**：Node.js 20+、Rust 工具链、Tauri 系统依赖（见 [Tauri prerequisites](https://tauri.app/start/prerequisites/)）。
+- **Steam Deck 插件**：Node.js 16.14+ 与 pnpm 9+（推荐使用模板锁定的工具链）。
 - **Windows**：构建脚本与开发流程要求 PowerShell 7.6.0 或更高版本。
+
+### 构建 Steam Deck 插件
+
+```bash
+pnpm install
+pnpm run check
+pnpm run test
+pnpm run bundle
+```
+
+成品位于 `out/BazaarPlusPlus-<version>.zip`。插件不内置第三方安装 payload；在 Steam Deck 上执行安装时会从官方 Release 获取并验证最新版，因此首次使用需要联网。
 
 ### 构建模组
 

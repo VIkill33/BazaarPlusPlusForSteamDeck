@@ -1,0 +1,35 @@
+name: Build Decky plugin
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BazaarPlusPlus-Decky
+          path: out/BazaarPlusPlus-*.zip
+          if-no-files-found: error

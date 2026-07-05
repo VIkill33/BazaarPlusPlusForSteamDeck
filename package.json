@@ -1,0 +1,42 @@
+{
+  "name": "bazaarplusplus-for-steam-deck",
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
+  "description": "Decky Loader plugin for installing BazaarPlusPlus on Steam Deck",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "check": "tsc --noEmit",
+    "test": "python3 -m unittest discover -s tests -p 'test_decky_*.py'",
+    "bundle": "bash scripts/build-plugin.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VIkill33/BazaarPlusPlusForSteamDeck.git"
+  },
+  "keywords": [
+    "decky",
+    "steam-deck",
+    "the-bazaar",
+    "bepinex"
+  ],
+  "author": "VIkill33",
+  "license": "MIT",
+  "devDependencies": {
+    "@decky/rollup": "^1.0.2",
+    "@decky/ui": "^4.11.0",
+    "@rollup/rollup-darwin-x64": "^4.53.3",
+    "@rollup/rollup-linux-x64-musl": "^4.53.3",
+    "@types/react-router": "^5.1.20",
+    "@types/react": "19.1.1",
+    "@types/react-dom": "19.1.1",
+    "rollup": "^4.53.3",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@decky/api": "^1.1.3",
+    "react-icons": "^5.3.0",
+    "tslib": "^2.7.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "BazaarPlusPlus",
+  "author": "VIkill33",
+  "flags": ["_root"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["utility", "game-mod", "the-bazaar"],
+    "description": "Install and manage BazaarPlusPlus for The Bazaar on Steam Deck.",
+    "image": "https://opengraph.githubassets.com/1/VIkill33/BazaarPlusPlusForSteamDeck"
+  }
+}

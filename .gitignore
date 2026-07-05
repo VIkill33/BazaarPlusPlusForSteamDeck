@@ -10,6 +10,10 @@ Thumbs.db
 **/bin/
 **/obj/
 dist/
+node_modules/
+out/
+__pycache__/
+*.pyc
 
 .DS_Store?
 *.user
