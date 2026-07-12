@@ -6,7 +6,7 @@
 
 [English](README_en.md) · [官网](https://bazaarplusplus.com) · [使用教程](https://bazaarplusplus.com/tutorial) · [BazaarPlusPlus 主仓库](https://github.com/cauyxy/BazaarPlusPlus) · [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
 
-[![Version](https://img.shields.io/badge/version-0.1.0-6dd9a0?style=flat-square)](package.json)
+[![Version](https://img.shields.io/badge/version-0.2.0-6dd9a0?style=flat-square)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Steam%20Deck-c1875a?style=flat-square)](https://store.steampowered.com/steamdeck)
 [![Decky Loader](https://img.shields.io/badge/Decky%20Loader-plugin-3d5afe?style=flat-square)](https://github.com/SteamDeckHomebrew/decky-loader)
