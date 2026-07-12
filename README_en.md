@@ -1,171 +1,91 @@
-<div align="center">
+# BazaarPlusPlus for Steam Deck
 
-# BazaarPlusPlus
+[中文](README.md)
 
-**Born of Passion** · A BepInEx mod, desktop installer, and Steam Deck plugin for [*The Bazaar*](https://www.playthebazaar.com)
+This Decky Loader plugin installs, updates, repairs, and removes the BazaarPlusPlus mod for *The Bazaar* on Steam Deck.
 
-[中文](README.md) · [Website](https://bazaarplusplus.com) · [Download](https://bazaarplusplus.com/download?lang=en) · [Tutorial](https://bazaarplusplus.com/tutorial?lang=en) · [Release Notes](https://github.com/cauyxy/BazaarPlusPlus/releases) · [Ko-fi](https://ko-fi.com/cauyxy)
+The plugin does not bundle the BazaarPlusPlus mod or desktop-installer source. During installation it reads the official BazaarPlusPlus R2 manifest, downloads the latest Windows x86_64 installer, extracts `BepInExSource/BepInEx.zip` with 7-Zip, validates the payload, and writes it into the Steam game directory.
 
-[![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
-[![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Steam%20Deck-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
-[![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
-[![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
-[![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
-[![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square)](https://react.dev)
+## Requirements
 
-</div>
+- The Steam version of *The Bazaar* (App ID `1617400`)
+- [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
+- Network access to the official BazaarPlusPlus release host and GitHub for the first installation
 
----
+## Installation
 
-BazaarPlusPlus is an open-source project for *The Bazaar*. The in-game BepInEx mod adds a card collection browser, run history, combat replays, tooltip previews, anonymous mode, Chinese terminology, and related quality-of-life features. The desktop installer supports Windows and macOS, while the Decky Loader plugin at the repository root manages installation, updates, repair, and removal on Steam Deck.
+1. Install and launch *The Bazaar* at least once, then exit the game completely.
+2. Enable ZIP plugin installation in Decky Loader's developer settings.
+3. Download or build `BazaarPlusPlus-<version>.zip`.
+4. Install the ZIP through Decky and open BazaarPlusPlus in the Quick Access Menu.
+5. Select **Install BazaarPlusPlus**.
 
-Most players should install from [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en); this repository is for developers who want to inspect the implementation, contribute changes, or build locally.
+The plugin adds Proton's required launch option after installation:
 
-> The bulk of the codebase is led by [Codex](https://openai.com/codex), with [Claude Code](https://claude.com/product/claude-code) contributing in collaboration.
-
-## Quick Start
-
-1. Open [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en) and choose the Windows `.exe` or macOS `.dmg`.
-2. Close the game before running the installer. For updates, uninstall the old build before installing the new one.
-3. Launch *The Bazaar* once after installation so BazaarPlusPlus can finish setup.
-4. On the main menu, confirm that the **Card Collection** button appears and the footer version text includes `BPP version`.
-
-Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial?lang=en).
-
-### Steam Deck (Decky Loader)
-
-1. Install the Steam version of *The Bazaar* (App ID `1617400`), launch it once, and exit it completely.
-2. Install [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) and enable ZIP plugin installation in its developer settings.
-3. Run `pnpm install && pnpm run bundle` from this repository and copy `out/BazaarPlusPlus-*.zip` to the Deck.
-4. Install that ZIP through Decky, open BazaarPlusPlus in the Quick Access Menu, and select **Install BazaarPlusPlus**.
-
-The plugin finds Steam libraries on internal storage and SD cards, downloads the latest Windows installer from the official BazaarPlusPlus R2 release source, verifies the download origin, limits download and extraction sizes, validates the installer structure and payload version, and configures Proton's required `WINEDLLOVERRIDES="winhttp=n,b"` launch option. The first install downloads about 70 MB. Exit the game before installing, repairing, resetting, or uninstalling.
-
-To remove it, use **Uninstall mod** in the BazaarPlusPlus panel first so the plugin can also restore Steam's launch options. Removing the Decky plugin itself does not remove files already installed in the game directory.
-
-## Feature Overview
-
-### In-Game Mod
-
-- **Card Collection**: Browse items and skills in-game, with filters for hero, tier, size, merchant, and current run day.
-- **BazaarDB Auto Upload**: Community-data contribution that uploads end-of-run screenshots and board data in the background. Disabled by default; opt-in only.
-- **Run History and Combat Replay**: Press `F8` to browse past runs and key fights, and watch replays and ghost battles.
-- **Combat Status Bar**: Shows combat time and pause state, with speed controls — handy for review, recording, and streaming.
-- **Anonymous Mode**: Hide the local player name in screenshots, recordings, and streams.
-- **Legendary Rank Display**: Hide your rank, show an exaggerated power value, or display rank and rating together.
-- **Enchant and Upgrade Previews**: Preview post-enchant or post-upgrade item values directly in tooltips.
-- **Chinese Terminology Modes**: Simplified Chinese plus Taiwan and Hong Kong Traditional terminology styles.
-
-### Desktop Installer
-
-- **Cross-platform install**: Windows and macOS, with automatic Steam game-directory detection.
-- **Repair / uninstall / reset local data**: Recover from broken installs, replay-data issues, or local-state corruption.
-- **Run history management**: View, locate, and clean up locally saved run records and replay videos.
-- **Stream Mode**: Start a localhost browser-source service for OBS and similar tools.
-- **Auto-update**: Uses Tauri Updater to check for new releases and prompt when available.
-
-## Repository Layout
-
-```
-.
-├── main.py                                   # Decky backend: detection, download, install
-├── src/index.tsx                             # Steam Deck Quick Access UI
-├── plugin.json / package.json                # Decky metadata and build configuration
-├── scripts/build-plugin.sh                   # creates an installable Decky ZIP
-├── bazaarplusplus-mod/                       # BepInEx mod source
-│   ├── run.sh                                # Common build/test/format/decompile entry point
-│   └── src/
-│       ├── BazaarPlusPlus/                   # Main mod: Game, Patches, Resources, Data
-│       ├── BazaarPlusPlus.ModApi/            # HTTP client for the mod backend
-│       ├── BazaarPlusPlus.Storage/           # Local run logs, screenshots, and SQLite storage
-│       └── BazaarPlusPlus.Localization/      # Chinese terminology and localization engine
-└── bazaarplusplus-installer/                 # Desktop installer
-    ├── src/                                  # Vite + React frontend
-    │   ├── pages/ features/ layouts/ api/    # Pages, feature state, shell, and Tauri calls
-    │   └── types/generated/                  # Rust -> TypeScript binding snapshot
-    ├── src-tauri/                            # Tauri 2 / Rust backend
-    │   ├── src/commands/ services/ history/  # Install, detect, history, and stream services
-    │   └── resources/                        # BepInEx, FFmpeg, stream overlay, install payload
-    ├── scripts/                              # Binding, manifest, and prebuild scripts
-    └── build.sh                              # Local development and release packaging entry point
+```text
+WINEDLLOVERRIDES="winhttp=n,b" %command%
 ```
 
-## Building From Source
+Existing launch options are preserved where possible. When the mod is removed, the plugin restores the original value if the current options still match the value it managed.
 
-### Prerequisites
+## Features
 
-- **Mod**: .NET SDK 8+ and a local Steam install of *The Bazaar* so game assemblies can be resolved.
-- **Installer**: Node.js 20+, the Rust toolchain, and the system dependencies listed in the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
-- **Steam Deck plugin**: Node.js 16.14+ and pnpm 9+.
-- **Windows**: PowerShell 7.6.0 or newer for the build scripts and development flow.
+- Finds the game in Steam libraries on internal storage and SD cards
+- Checks the latest remote release
+- Installs, updates, or reinstalls BazaarPlusPlus
+- Repairs the Steam launch options
+- Resets local BazaarPlusPlus data
+- Removes the mod while preserving shared dependencies when other BepInEx plugins exist
+- Reports download and extraction progress
 
-### Build the Steam Deck plugin
+Exit the game before installing, repairing, resetting, or removing the mod. Deleting the Decky plugin does not remove files already written into the game directory; use **Uninstall mod** in the plugin first.
+
+## Security
+
+The backend:
+
+- Accepts only HTTPS URLs on the official R2 host and expected release paths
+- Rejects cross-host redirects and malformed release paths
+- Verifies the downloaded 7-Zip tool against a fixed SHA-256 digest
+- Limits manifest, download, and extracted payload sizes
+- Rejects ZIP path traversal and symbolic links
+- Validates required payload files and the payload version
+- Applies files through a temporary staging area and rolls back failed writes
+
+## Build from source
+
+Node.js, pnpm 9+, and Python 3.11+ are required.
 
 ```bash
-pnpm install
-pnpm run check
-pnpm run test
+pnpm install --frozen-lockfile
 pnpm run bundle
 ```
 
-The installable artifact is written to `out/BazaarPlusPlus-<version>.zip`. The plugin does not bundle the third-party install payload; it downloads and verifies the latest release from the official R2 source on the Deck, so the first install requires an internet connection.
+The installable artifact is written to:
 
-### Build the Mod
-
-```bash
-cd bazaarplusplus-mod
-
-# Development build: resolves the local game directory and copies the Debug DLL into BepInEx/plugins
-./run.sh build
-
-# Build Debug + Release in one pass
-./run.sh all
-
-# Override the game assembly directory explicitly
-dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj \
-  -c Debug \
-  -p:ManagedPath="<Steam>/steamapps/common/The Bazaar/.../Managed"
+```text
+out/BazaarPlusPlus-<version>.zip
 ```
 
-### Build the Installer
+`pnpm run bundle` runs TypeScript type checking, Python unit tests, and the Rollup build.
 
-```bash
-cd bazaarplusplus-installer
+## Repository layout
 
-npm install
-npm run dev        # Vite frontend dev server
-npm run tauri dev  # full Tauri desktop app
-
-npm run check
-npm run test
-npm run format
-
-./build.sh --prod  # production package for the host platform
+```text
+.
+├── main.py                    # Decky Python backend
+├── src/index.tsx              # Steam Deck Quick Access UI
+├── tests/test_decky_backend.py
+├── plugin.json                # Decky plugin metadata
+├── package.json               # Dependencies and build commands
+├── pnpm-lock.yaml             # Reproducible dependency lock
+├── rollup.config.js
+├── tsconfig.json
+└── scripts/build-plugin.sh
 ```
 
-Release signing, notarization, and R2 upload flows depend on local environment variables and `signing-secrets/`, which are intentionally not committed. A full release build also requires a local game install, signing material, and the platform dependencies — the public source tree alone is not enough.
-
-## Derivative Work Notice
-
-If you plan to build on top of this project or release derivative mods, make sure your work complies with *The Bazaar* official Mod Policy:
-
-[The Bazaar Mod Policy](https://www.playthebazaar.com/mod-policy)
-
-## Acknowledgements
-
-- **Inspiration**: [BazaarHelper](https://github.com/Duangi/BazaarHelper), [BazaarPlannerMod](https://github.com/oceanseth/BazaarPlannerMod)
-- **Data reference**: [bazaardb.gg](https://bazaardb.gg)
-- **Runtime dependencies**: [BepInEx](https://github.com/BepInEx/BepInEx), [Harmony](https://github.com/pardeike/Harmony), [Tauri](https://tauri.app), [React](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS](https://tailwindcss.com), [FFmpeg](https://ffmpeg.org)
-- **Font**: [LXGW WenKai](https://github.com/lxgw/LxgwWenKai) (SIL Open Font License 1.1)
-- **Co-creators**: [Codex](https://openai.com/codex), [Claude Code](https://claude.com/product/claude-code)
-
-## Supporters
-
-Thanks to everyone who supports BazaarPlusPlus. The full supporter list lives at [bazaarplusplus.com/support](https://bazaarplusplus.com/support?lang=en).
-
-If you would like to support continued maintenance, head to [Ko-fi](https://ko-fi.com/cauyxy) or check the in-app sponsor options.
+`dist/`, `out/`, `node_modules/`, and `__pycache__/` are reproducible local artifacts and are not committed.
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). Decky Plugin Template-derived portions retain their BSD 3-Clause License notice.

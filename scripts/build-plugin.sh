@@ -14,7 +14,7 @@ pnpm run build
 rm -rf "$ROOT/out"
 mkdir -p "$STAGE/dist"
 cp "$ROOT/dist/index.js" "$STAGE/dist/index.js"
-cp "$ROOT/main.py" "$ROOT/package.json" "$ROOT/plugin.json" "$ROOT/LICENSE" "$ROOT/README.md" "$STAGE/"
+cp "$ROOT/main.py" "$ROOT/package.json" "$ROOT/plugin.json" "$ROOT/LICENSE" "$ROOT/README.md" "$ROOT/README_en.md" "$STAGE/"
 
 cd "$ROOT/out"
 zip -qr "BazaarPlusPlus-${VERSION}.zip" "$PACKAGE_NAME"

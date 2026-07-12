@@ -46,7 +46,6 @@ BPP_PRIVATE_PATHS = (
     "BepInEx/plugins/BazaarPlusPlus.ModApi.dll",
     "BepInEx/plugins/BazaarPlusPlus.Storage.dll",
     "BepInEx/plugins/BazaarPlusPlus.Localization.dll",
-    "BepInEx/plugins/libBppMacAudio.dylib",
 )
 BPP_DEPENDENCY_PATHS = (
     "BepInEx/plugins/Microsoft.Data.Sqlite.dll",
@@ -59,8 +58,6 @@ BPP_DEPENDENCY_PATHS = (
     "BepInEx/plugins/System.Numerics.Vectors.dll",
     "BepInEx/plugins/System.Text.Encoding.CodePages.dll",
     "BepInEx/plugins/e_sqlite3.dll",
-    "BepInEx/plugins/libe_sqlite3.dylib",
-    "BepInEx/plugins/ffmpeg",
     "BepInEx/plugins/ffmpeg.exe",
     "BepInEx/plugins/ffmpeg-LICENSE.txt",
 )
@@ -177,9 +174,7 @@ def _latest_release() -> dict[str, str]:
         raise RuntimeError("官方发布信息缺少 Windows 安装器 URL")
     _validate_and_get_installer_version(url, version)
 
-    raw_notes = release.get("notes")
-    notes = raw_notes.strip() if isinstance(raw_notes, str) else ""
-    return {"version": version, "notes": notes, "url": url}
+    return {"version": version, "url": url}
 
 
 def _sha256(path: Path) -> str:
@@ -195,7 +190,6 @@ def _download(
     destination: Path,
     *,
     expected_sha256: str | None = None,
-    expected_size: int | None = None,
     allowed_host: str | None = None,
     progress: Callable[[int], None] | None = None,
 ) -> Path:
@@ -256,10 +250,6 @@ def _download(
         if content_length is not None and downloaded != content_length:
             raise RuntimeError(
                 f"下载大小不匹配：Content-Length {content_length}，实际 {downloaded}"
-            )
-        if expected_size is not None and downloaded != expected_size:
-            raise RuntimeError(
-                f"下载大小不匹配：预期 {expected_size}，实际 {downloaded}"
             )
         if expected_sha256 is not None and digest.hexdigest() != expected_sha256:
             raise RuntimeError("下载文件 SHA-256 校验失败")
@@ -592,7 +582,7 @@ class Plugin:
 
     async def check_latest(self) -> dict[str, str]:
         release = await self._get_release()
-        return {"version": release["version"], "notes": release["notes"]}
+        return {"version": release["version"]}
 
     async def _get_release(self) -> dict[str, str]:
         if self.release_cache and time.monotonic() - self.release_cache[0] < 600:
@@ -653,8 +643,6 @@ class Plugin:
 
             await self._progress("安装完成", 100)
             result = await asyncio.to_thread(_status)
-            result["latest_version"] = release["version"]
-            result["update_available"] = False
             decky.logger.info(
                 "Installed BazaarPlusPlus %s to %s", release["version"], game_path
             )

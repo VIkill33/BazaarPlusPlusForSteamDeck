@@ -23,13 +23,10 @@ type PluginStatus = {
   game_running: boolean;
   installed: boolean;
   installed_version: string | null;
-  latest_version?: string | null;
-  update_available?: boolean;
 };
 
 type LatestRelease = {
   version: string;
-  notes: string;
 };
 
 type LaunchOptionsBackup = {

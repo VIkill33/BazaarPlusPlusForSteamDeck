@@ -168,7 +168,6 @@ class ReleaseMetadataTests(unittest.TestCase):
     def _manifest(self, **changes):
         fixture = {
             "version": "4.4.3",
-            "notes": "notes",
             "platforms": {
                 "linux-x86_64": {"url": "https://example.com/linux.tar.gz"},
                 "windows-x86_64": {
@@ -192,21 +191,12 @@ class ReleaseMetadataTests(unittest.TestCase):
             release,
             {
                 "version": "4.4.3",
-                "notes": "notes",
                 "url": (
                     "https://bppinstaller.bazaarplusplus.com/4.4.3/"
                     "windows-x86_64/updater/BazaarPlusPlus_4.4.3_x64-setup.exe"
                 ),
             },
         )
-
-    def test_missing_or_non_string_notes_become_empty(self):
-        missing_notes = self._manifest()
-        missing_notes.pop("notes")
-        for fixture in (self._manifest(notes=None), missing_notes):
-            with self.subTest(fixture=fixture):
-                with mock.patch.object(backend, "_request_json", return_value=fixture):
-                    self.assertEqual(backend._latest_release()["notes"], "")
 
     def test_rejects_missing_platforms(self):
         fixture = self._manifest()
