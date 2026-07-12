@@ -1,26 +1,35 @@
+<div align="center">
+
 # BazaarPlusPlus for Steam Deck
 
-[中文](README.md)
+**Born from passion** · Install and manage the [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus) mod for [*The Bazaar*](https://www.playthebazaar.com) on Steam Deck
 
-This Decky Loader plugin installs, updates, repairs, and removes the BazaarPlusPlus mod for *The Bazaar* on Steam Deck.
+[中文](README.md) · [Website](https://bazaarplusplus.com) · [Tutorial](https://bazaarplusplus.com/tutorial) · [BazaarPlusPlus main repo](https://github.com/cauyxy/BazaarPlusPlus) · [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
 
-The plugin does not bundle the BazaarPlusPlus mod or desktop-installer source. During installation it reads the official BazaarPlusPlus R2 manifest, downloads the latest Windows x86_64 installer, extracts `BepInExSource/BepInEx.zip` with 7-Zip, validates the payload, and writes it into the Steam game directory.
+[![Version](https://img.shields.io/badge/version-0.1.0-6dd9a0?style=flat-square)](package.json)
+[![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Steam%20Deck-c1875a?style=flat-square)](https://store.steampowered.com/steamdeck)
+[![Decky Loader](https://img.shields.io/badge/Decky%20Loader-plugin-3d5afe?style=flat-square)](https://github.com/SteamDeckHomebrew/decky-loader)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776ab?style=flat-square)](https://www.python.org)
+[![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square)](https://react.dev)
 
-## Requirements
+</div>
 
-- The Steam version of *The Bazaar* (App ID `1617400`)
-- [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
-- Network access to the official BazaarPlusPlus release host and GitHub for the first installation
+---
 
-## Installation
+BazaarPlusPlus for Steam Deck is a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin that installs, updates, repairs, and removes the BazaarPlusPlus mod for *The Bazaar* on Steam Deck. The in-game features — card encyclopedia, match history, battle replays, Chinese terminology, and more — come from the mod itself; its source and the Windows / macOS desktop installer live in the [BazaarPlusPlus main repo](https://github.com/cauyxy/BazaarPlusPlus).
 
-1. Install and launch *The Bazaar* at least once, then exit the game completely.
-2. Enable ZIP plugin installation in Decky Loader's developer settings.
-3. Download or build `BazaarPlusPlus-<version>.zip`.
-4. Install the ZIP through Decky and open BazaarPlusPlus in the Quick Access Menu.
-5. Select **Install BazaarPlusPlus**.
+The plugin does not bundle the mod or installer source. During installation it reads the release manifest from the official BazaarPlusPlus release host (Cloudflare R2), downloads the latest Windows x86_64 installer, extracts `BepInExSource/BepInEx.zip` from it with 7-Zip, validates the payload, writes it into the Steam game directory, and configures the launch option Proton needs.
 
-The plugin adds Proton's required launch option after installation:
+## Quick start
+
+1. Install and launch *The Bazaar* (Steam version, App ID `1617400`) at least once, then exit the game completely.
+2. Install [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) and enable ZIP plugin installation in its developer settings.
+3. Download (or [build from source](#build-from-source)) `BazaarPlusPlus-<version>.zip` and install it through Decky.
+4. Open BazaarPlusPlus in the Quick Access Menu, select **Install BazaarPlusPlus**, and wait for the download and extraction to finish.
+5. Launch the game and confirm the card encyclopedia button appears in the main menu.
+
+The first installation requires network access to the official BazaarPlusPlus release host and GitHub. After installation the plugin adds the launch option Proton requires:
 
 ```text
 WINEDLLOVERRIDES="winhttp=n,b" %command%
@@ -30,21 +39,20 @@ Existing launch options are preserved where possible. When the mod is removed, t
 
 ## Features
 
-- Finds the game in Steam libraries on internal storage and SD cards
-- Checks the latest remote release
-- Installs, updates, or reinstalls BazaarPlusPlus
-- Repairs the Steam launch options
-- Resets local BazaarPlusPlus data
-- Removes the mod while preserving shared dependencies when other BepInEx plugins exist
-- Reports download and extraction progress
+- **Install / update / reinstall**: reads the official release manifest, compares it against the installed version, and offers the latest release.
+- **Game detection**: locates *The Bazaar* in Steam libraries on internal storage and SD cards.
+- **Repair launch options**: restores the Proton launch option if it was overwritten or lost.
+- **Reset local data**: clears BazaarPlusPlus local match data back to a clean state.
+- **Uninstall**: removes mod files, preserving shared dependencies when other BepInEx plugins exist.
+- **Progress reporting**: shows live download and extraction progress during installation.
 
-Exit the game before installing, repairing, resetting, or removing the mod. Deleting the Decky plugin does not remove files already written into the game directory; use **Uninstall mod** in the plugin first.
+Exit the game before installing, repairing, resetting, or removing the mod. Deleting the Decky plugin does not remove files already written into the game directory; use **Uninstall mod** in the plugin panel first.
 
 ## Security
 
-The backend:
+While downloading and writing files, the plugin backend:
 
-- Accepts only HTTPS URLs on the official R2 host and expected release paths
+- Accepts only HTTPS URLs on the official release host and expected release paths
 - Rejects cross-host redirects and malformed release paths
 - Verifies the downloaded 7-Zip tool against a fixed SHA-256 digest
 - Limits manifest, download, and extracted payload sizes
@@ -61,30 +69,43 @@ pnpm install --frozen-lockfile
 pnpm run bundle
 ```
 
-The installable artifact is written to:
+`pnpm run bundle` runs TypeScript type checking, the TypeScript / Python unit tests, and the Rollup build. The installable artifact is written to:
 
 ```text
 out/BazaarPlusPlus-<version>.zip
 ```
 
-`pnpm run bundle` runs TypeScript type checking, Python unit tests, and the Rollup build.
-
 ## Repository layout
 
 ```text
 .
-├── main.py                    # Decky Python backend
-├── src/index.tsx              # Steam Deck Quick Access UI
-├── tests/test_decky_backend.py
-├── plugin.json                # Decky plugin metadata
-├── package.json               # Dependencies and build commands
-├── pnpm-lock.yaml             # Reproducible dependency lock
+├── main.py                        # Decky Python backend: download, verification, install transaction
+├── src/
+│   ├── index.tsx                  # Steam Deck Quick Access UI
+│   ├── launchOptions.ts           # Proton launch option planning
+│   └── launchOptions.test.ts
+├── tests/test_decky_backend.py    # Backend unit tests
+├── plugin.json                    # Decky plugin metadata
+├── package.json                   # Dependencies and build commands
+├── pnpm-lock.yaml                 # Reproducible dependency lock
 ├── rollup.config.js
 ├── tsconfig.json
-└── scripts/build-plugin.sh
+└── scripts/build-plugin.sh        # Bundle packaging script
 ```
 
 `dist/`, `out/`, `node_modules/`, and `__pycache__/` are reproducible local artifacts and are not committed.
+
+## Modding policy
+
+If you plan to build on this project, please follow the official *The Bazaar* Mod Policy:
+
+[The Bazaar Mod Policy](https://www.playthebazaar.com/mod-policy)
+
+## Acknowledgements
+
+- **The mod itself**: [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus) (by [cauyxy](https://github.com/cauyxy))
+- **Runtime dependencies**: [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader), [BepInEx](https://github.com/BepInEx/BepInEx), [7-Zip](https://www.7-zip.org)
+- **Scaffolding**: [Decky Plugin Template](https://github.com/SteamDeckHomebrew/decky-plugin-template)
 
 ## License
 
