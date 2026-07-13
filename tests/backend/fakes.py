@@ -1,14 +1,15 @@
 from pathlib import Path
+from typing import Optional
 
 from backend.bpp.models import Release
 
 
 class FakeSteamEnvironment:
-    def __init__(self, game_path: Path | None = None, running: bool = False) -> None:
+    def __init__(self, game_path: Optional[Path] = None, running: bool = False) -> None:
         self.game_path = game_path
         self.running = running
 
-    def find_game(self) -> Path | None:
+    def find_game(self) -> Optional[Path]:
         return self.game_path
 
     def is_game_running(self) -> bool:
@@ -29,7 +30,7 @@ class FakeReleaseSource:
 
 
 class FakeInstaller:
-    def __init__(self, installed_version: str | None = None) -> None:
+    def __init__(self, installed_version: Optional[str] = None) -> None:
         self.version = installed_version
         self.calls: list[tuple[str, Path]] = []
 

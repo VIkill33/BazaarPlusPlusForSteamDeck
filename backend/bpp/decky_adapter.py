@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import decky
 
@@ -28,11 +29,30 @@ def _latest_to_wire(latest: LatestRelease) -> dict[str, object]:
     }
 
 
+def _log_exception(message: str) -> None:
+    logger = decky.logger
+    exception = getattr(logger, "exception", None)
+    if callable(exception):
+        exception(message)
+        return
+    error = getattr(logger, "error", None)
+    if callable(error):
+        error(message, exc_info=True)
+        return
+    logger.info("%s", message)
+
+
 class Plugin:
     async def _main(self) -> None:
         self._loop = asyncio.get_running_loop()
         runtime_dir = Path(decky.DECKY_PLUGIN_RUNTIME_DIR)
         settings_dir = Path(decky.DECKY_PLUGIN_SETTINGS_DIR)
+        decky.logger.info(
+            "Initializing BazaarPlusPlus plugin runtime=%s settings=%s user_home=%s",
+            runtime_dir,
+            settings_dir,
+            decky.DECKY_USER_HOME,
+        )
         runtime_dir.mkdir(parents=True, exist_ok=True)
         settings_dir.mkdir(parents=True, exist_ok=True)
         releases = OfficialReleaseSource(runtime_dir)
@@ -50,10 +70,35 @@ class Plugin:
         decky.logger.info("BazaarPlusPlus Steam Deck plugin unloaded")
 
     async def get_status(self) -> dict[str, object]:
-        return _status_to_wire(await asyncio.to_thread(self._manager.status))
+        decky.logger.info("Checking BazaarPlusPlus Steam Deck status")
+        try:
+            status = await asyncio.to_thread(self._manager.status)
+        except Exception:
+            _log_exception("Failed to check BazaarPlusPlus Steam Deck status")
+            raise
+        decky.logger.info(
+            "BazaarPlusPlus status game_found=%s installed=%s game_running=%s game_path=%s installed_version=%s",
+            status.game_found,
+            status.installed,
+            status.game_running,
+            status.game_path,
+            status.installed_version,
+        )
+        return _status_to_wire(status)
 
     async def check_latest(self) -> dict[str, object]:
-        return _latest_to_wire(await asyncio.to_thread(self._manager.check_latest))
+        decky.logger.info("Checking latest BazaarPlusPlus release")
+        try:
+            latest = await asyncio.to_thread(self._manager.check_latest)
+        except Exception:
+            _log_exception("Failed to check latest BazaarPlusPlus release")
+            raise
+        decky.logger.info(
+            "Latest BazaarPlusPlus release version=%s update_available=%s",
+            latest.version,
+            latest.update_available,
+        )
+        return _latest_to_wire(latest)
 
     async def install_latest(self) -> dict[str, object]:
         def progress(message: str, percent: int) -> None:
@@ -79,7 +124,7 @@ class Plugin:
     async def remember_launch_options(self, original: str, managed: str) -> None:
         await asyncio.to_thread(self._settings.save, original, managed)
 
-    async def get_launch_options_backup(self) -> dict[str, str] | None:
+    async def get_launch_options_backup(self) -> Optional[dict[str, str]]:
         backup = await asyncio.to_thread(self._settings.get)
         if backup is None:
             return None

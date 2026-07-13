@@ -4,7 +4,7 @@ import stat
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
-from typing import Iterable
+from typing import Iterable, Optional
 
 from .models import Release, normalize_version
 from .release import ProgressReporter, ReleaseSource
@@ -136,7 +136,7 @@ def _apply_staged_payload(staging: Path, game_path: Path) -> None:
                 shutil.copy2(source, temporary)
                 os.replace(temporary, destination)
         except Exception as install_error:
-            rollback_error: Exception | None = None
+            rollback_error: Optional[Exception] = None
             for relative in files:
                 destination = _assert_safe_destination(game_path, relative)
                 temporary = destination.with_name(destination.name + ".bpp-new")
@@ -224,7 +224,7 @@ class Installer:
             raise RuntimeError("拒绝删除符号链接形式的数据目录")
         shutil.rmtree(data_path, ignore_errors=True)
 
-    def installed_version(self, game_path: Path) -> str | None:
+    def installed_version(self, game_path: Path) -> Optional[str]:
         version_file = game_path / "BepInEx/plugins/BazaarPlusPlus.version"
         plugin_file = game_path / "BepInEx/plugins/BazaarPlusPlus.dll"
         if not plugin_file.is_file():

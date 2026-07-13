@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -10,10 +11,10 @@ class Release:
 @dataclass(frozen=True)
 class PluginStatus:
     game_found: bool
-    game_path: str | None
+    game_path: Optional[str]
     game_running: bool
     installed: bool
-    installed_version: str | None
+    installed_version: Optional[str]
 
 
 @dataclass(frozen=True)
