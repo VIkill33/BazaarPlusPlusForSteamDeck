@@ -1,27 +1,13 @@
 .DS_Store
-**/.DS_Store
 Thumbs.db
 
 .idea/
-.trae/
 .vscode/
-.vs/
 
-**/bin/
-**/obj/
 dist/
 node_modules/
-out/
+.build/
 __pycache__/
 *.pyc
 
-.DS_Store?
-*.user
-*.suo
-
-.dotnet/
-.nuget/
 .npm-cache/
-.wrangler/
-
-bazaarplusplus-mod/tools/local_r2_clone/runtime/
