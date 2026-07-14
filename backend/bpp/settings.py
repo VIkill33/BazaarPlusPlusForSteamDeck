@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 MAX_LAUNCH_OPTIONS_LENGTH = 16384
@@ -36,7 +36,7 @@ class LaunchOptionsBackupStore:
             {"original": original, "managed": managed},
         )
 
-    def get(self) -> LaunchOptionsBackup | None:
+    def get(self) -> Optional[LaunchOptionsBackup]:
         try:
             value = json.loads(self._path.read_text("utf-8"))
         except (OSError, json.JSONDecodeError):

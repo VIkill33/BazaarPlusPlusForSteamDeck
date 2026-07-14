@@ -8,12 +8,31 @@ import { useInstaller } from "./useInstaller";
 
 function StatusCard({
   status,
+  statusError,
   latest,
 }: {
   status: PluginStatus | null;
+  statusError: string;
   latest: LatestRelease | null;
 }) {
   if (!status) {
+    if (statusError) {
+      return (
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: "rgba(255,90,90,.12)",
+            color: "#ffb4b4",
+            lineHeight: 1.45,
+            wordBreak: "break-word",
+          }}
+        >
+          <div>检测失败</div>
+          <div style={{ opacity: 0.75, fontSize: 11 }}>{statusError}</div>
+        </div>
+      );
+    }
     return <div style={{ opacity: 0.7 }}>正在检测…</div>;
   }
   const stateText = !status.game_found
@@ -46,13 +65,13 @@ function StatusCard({
 
 export function PluginPanel() {
   const controller = useInstaller();
-  const { status, latest, busy, progress, repairMode } = controller;
+  const { status, statusError, latest, busy, progress, repairMode } = controller;
   const updateAvailable = latest?.update_available ?? false;
   return (
     <>
       <PanelSection title="Steam Deck 安装状态">
         <PanelSectionRow>
-          <StatusCard status={status} latest={latest} />
+          <StatusCard status={status} statusError={statusError} latest={latest} />
         </PanelSectionRow>
         {progress && (
           <PanelSectionRow>

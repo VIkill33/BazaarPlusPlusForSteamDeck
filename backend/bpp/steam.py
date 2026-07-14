@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Protocol
+from typing import Optional, Protocol
 
 
 APP_ID = 1617400
@@ -9,7 +9,7 @@ GAME_EXECUTABLE = "TheBazaar.exe"
 
 
 class SteamEnvironment(Protocol):
-    def find_game(self) -> Path | None: ...
+    def find_game(self) -> Optional[Path]: ...
 
     def is_game_running(self) -> bool: ...
 
@@ -51,7 +51,7 @@ def _steam_roots(user_home: Path) -> list[Path]:
     return discovered
 
 
-def _manifest_install_dir(manifest: Path) -> str | None:
+def _manifest_install_dir(manifest: Path) -> Optional[str]:
     try:
         contents = manifest.read_text("utf-8", errors="replace")
     except OSError:
@@ -65,7 +65,7 @@ class LinuxSteamEnvironment:
         self._user_home = user_home
         self._proc_root = proc_root
 
-    def find_game(self) -> Path | None:
+    def find_game(self) -> Optional[Path]:
         for root in _steam_roots(self._user_home):
             steamapps = root / "steamapps"
             install_dir = _manifest_install_dir(

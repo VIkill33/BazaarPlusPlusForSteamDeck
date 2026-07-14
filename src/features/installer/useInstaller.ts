@@ -24,6 +24,7 @@ const launchOptions = createLaunchOptionsManager(
 
 export type InstallerController = {
   status: PluginStatus | null;
+  statusError: string;
   latest: LatestRelease | null;
   busy: boolean;
   progress: string;
@@ -37,6 +38,7 @@ export type InstallerController = {
 
 export function useInstaller(): InstallerController {
   const [status, setStatus] = useState<PluginStatus | null>(null);
+  const [statusError, setStatusError] = useState("");
   const [latest, setLatest] = useState<LatestRelease | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
@@ -46,6 +48,7 @@ export function useInstaller(): InstallerController {
 
   const refresh = useCallback(async () => {
     try {
+      setStatusError("");
       const next = await refreshInstallerState(backendClient, (error) =>
         console.warn("Unable to check BazaarPlusPlus release", error),
       );
@@ -55,6 +58,7 @@ export function useInstaller(): InstallerController {
         setLatest(next.latest);
       }
     } catch (error) {
+      setStatusError(String(error));
       toaster.toast({
         title: "状态刷新失败",
         body: String(error),
@@ -175,6 +179,7 @@ export function useInstaller(): InstallerController {
 
   return {
     status,
+    statusError,
     latest,
     busy,
     progress,

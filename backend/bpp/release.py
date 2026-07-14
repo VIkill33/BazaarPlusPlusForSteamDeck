@@ -10,7 +10,7 @@ import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Optional, Protocol
 
 from .models import Release
 
@@ -193,9 +193,9 @@ def _download(
     url: str,
     destination: Path,
     *,
-    expected_sha256: str | None = None,
-    verify_url: Callable[[str], None] | None = None,
-    progress: Callable[[int], None] | None = None,
+    expected_sha256: Optional[str] = None,
+    verify_url: Optional[Callable[[str], None]] = None,
+    progress: Optional[Callable[[int], None]] = None,
 ) -> Path:
     if (expected_sha256 is None) == (verify_url is None):
         raise RuntimeError("下载必须提供 SHA-256 或 URL 校验器（二选一）")
@@ -316,7 +316,7 @@ class OfficialReleaseSource:
     ) -> None:
         self._runtime_dir = runtime_dir
         self._clock = clock
-        self._cache: tuple[float, Release] | None = None
+        self._cache: Optional[tuple[float, Release]] = None
 
     def latest(self) -> Release:
         now = self._clock()

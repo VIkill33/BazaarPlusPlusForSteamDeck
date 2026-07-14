@@ -35,17 +35,13 @@ def main(zip_path: str) -> None:
 
         decky.emit = emit
         sys.modules["decky"] = decky
-        sys.path.insert(0, str(package))
-        try:
-            spec = importlib.util.spec_from_file_location("bpp_bundle_main", entrypoint)
-            if spec is None or spec.loader is None:
-                raise SystemExit("cannot create bundle main.py import spec")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            if not isinstance(getattr(module, "Plugin", None), type):
-                raise SystemExit("bundle main.py does not expose Plugin")
-        finally:
-            sys.path.remove(str(package))
+        spec = importlib.util.spec_from_file_location("bpp_bundle_main", entrypoint)
+        if spec is None or spec.loader is None:
+            raise SystemExit("cannot create bundle main.py import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if not isinstance(getattr(module, "Plugin", None), type):
+            raise SystemExit("bundle main.py does not expose Plugin")
 
 
 if __name__ == "__main__":

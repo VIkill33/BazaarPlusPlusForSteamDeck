@@ -30,12 +30,40 @@ class ArchitectureRulesTests(unittest.TestCase):
                 if restricted in imports:
                     self.assertIn(path.name, {"installer.py", "release.py"})
 
-    def test_thin_python_and_typescript_entrypoints(self):
+    def test_python_entrypoint_adds_package_dir_before_backend_import(self):
         tree = ast.parse((ROOT / "main.py").read_text("utf-8"))
-        self.assertEqual(len(tree.body), 2)
-        import_node, export_node = tree.body
+        imported_modules = [
+            node.module
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+        ]
+        self.assertIn("pathlib", imported_modules)
+        backend_import_index = next(
+            index
+            for index, node in enumerate(tree.body)
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "backend.bpp.decky_adapter"
+        )
+        path_setup_index = next(
+            index
+            for index, node in enumerate(tree.body)
+            if isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "insert"
+        )
+        self.assertLess(path_setup_index, backend_import_index)
+
+    def test_python_entrypoint_exports_plugin(self):
+        tree = ast.parse((ROOT / "main.py").read_text("utf-8"))
+        import_node = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "backend.bpp.decky_adapter"
+        )
+        export_node = tree.body[-1]
         self.assertIsInstance(import_node, ast.ImportFrom)
-        self.assertEqual(import_node.module, "backend.bpp.decky_adapter")
         self.assertEqual([alias.name for alias in import_node.names], ["Plugin"])
         self.assertIsInstance(export_node, ast.Assign)
         self.assertEqual(
