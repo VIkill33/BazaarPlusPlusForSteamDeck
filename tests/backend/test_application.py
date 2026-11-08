@@ -49,7 +49,9 @@ class ApplicationTests(unittest.TestCase):
     def test_mutations_return_fresh_status(self):
         progress = []
         self.assertEqual(
-            self.manager.install(lambda message, percent: progress.append((message, percent))),
+            self.manager.install(
+                lambda message, percent: progress.append((message, percent))
+            ),
             PluginStatus(True, "/game", False, True, "4.4.3"),
         )
         self.assertEqual(progress[0], ("读取官方发布信息", 5))
@@ -57,8 +59,16 @@ class ApplicationTests(unittest.TestCase):
         self.manager.reset_data()
         self.assertEqual(
             self.installer.calls,
-            [("install", self.game), ("uninstall", self.game), ("reset_data", self.game)],
+            [
+                ("install", self.game, "medium"),
+                ("uninstall", self.game, None),
+                ("reset_data", self.game, None),
+            ],
         )
+
+    def test_install_passes_panel_font_size_preset(self):
+        self.manager.install(lambda message, percent: None, "large")
+        self.assertEqual(self.installer.calls, [("install", self.game, "large")])
 
     def test_preflight_errors_before_mutation(self):
         self.steam.game_path = None

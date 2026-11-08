@@ -12,6 +12,10 @@ INSTALLER_URL = (
     "https://bppinstaller.bazaarplusplus.com/4.4.3/"
     "windows-x86_64/updater/BazaarPlusPlus_4.4.3_x64-setup.exe"
 )
+CDN_INSTALLER_URL = (
+    "https://cdn.bazaarplusplus.com/installer/6.0.0/"
+    "windows-x86_64/updater/BazaarPlusPlus_6.0.0_x64-setup.exe"
+)
 
 
 class FakeResponse:
@@ -37,6 +41,35 @@ class FakeResponse:
 
 
 class ReleaseSourceTests(unittest.TestCase):
+    def test_parses_official_6_release_from_cdn(self):
+        self.assertEqual(
+            release._parse_release_manifest({
+                "version": "6.0.0",
+                "platforms": {"windows-x86_64": {"url": CDN_INSTALLER_URL}},
+            }),
+            Release(version="6.0.0", installer_url=CDN_INSTALLER_URL),
+        )
+
+    def test_rejects_invalid_cdn_urls(self):
+        for url in (
+            CDN_INSTALLER_URL.replace("https:", "http:"),
+            CDN_INSTALLER_URL.replace("cdn.bazaarplusplus.com", "evil.example"),
+            CDN_INSTALLER_URL.replace("cdn.", "user@cdn."),
+            CDN_INSTALLER_URL.replace(".com/", ".com:8443/"),
+            CDN_INSTALLER_URL.replace("/installer/", "/"),
+            CDN_INSTALLER_URL.replace("/installer/", "/other/"),
+            CDN_INSTALLER_URL.replace("6.0.0", "6.0.1"),
+            CDN_INSTALLER_URL.replace("windows-x86_64", "linux-x86_64"),
+            CDN_INSTALLER_URL.replace("/updater/", "/installer/"),
+            CDN_INSTALLER_URL.replace("/updater/", "/updater/extra/"),
+            CDN_INSTALLER_URL.replace(".exe", ".zip"),
+            CDN_INSTALLER_URL + "?x=1",
+            CDN_INSTALLER_URL + "#fragment",
+            CDN_INSTALLER_URL.replace("cdn.bazaarplusplus.com", "bppinstaller.bazaarplusplus.com"),
+        ):
+            with self.subTest(url=url), self.assertRaises(RuntimeError):
+                release._validate_installer_url(url, "6.0.0")
+
     def test_parses_windows_release(self):
         self.assertEqual(
             release._parse_release_manifest(
@@ -81,7 +114,7 @@ class ReleaseSourceTests(unittest.TestCase):
         self.assertEqual(latest.call_count, 2)
 
     def test_user_agent_uses_package_version(self):
-        self.assertEqual(release.USER_AGENT, "BazaarPlusPlusForSteamDeck/0.2.0")
+        self.assertEqual(release.USER_AGENT, "BazaarPlusPlusForSteamDeck/0.3.1")
 
     def test_rejects_missing_or_invalid_manifest_fields(self):
         valid = {
@@ -141,6 +174,30 @@ class ManifestRequestTests(unittest.TestCase):
 
 
 class DownloadTests(unittest.TestCase):
+    def test_downloads_official_cdn_payload(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            destination = Path(root_name) / "installer.exe"
+            response = FakeResponse(
+                b"payload", url=CDN_INSTALLER_URL, headers={"Content-Length": "7"}
+            )
+            with mock.patch.object(release.urllib.request, "urlopen", return_value=response):
+                release._download(
+                    CDN_INSTALLER_URL, destination,
+                    verify_url=release._installer_url_verifier("6.0.0"),
+                )
+            self.assertEqual(destination.read_bytes(), b"payload")
+
+    def test_rejects_cdn_redirect_to_wrong_version_before_reading(self):
+        response = FakeResponse(b"payload", url=CDN_INSTALLER_URL.replace("6.0.0", "6.0.1"))
+        with tempfile.TemporaryDirectory() as root_name, mock.patch.object(
+            release.urllib.request, "urlopen", return_value=response
+        ), self.assertRaises(RuntimeError):
+            release._download(
+                CDN_INSTALLER_URL, Path(root_name) / "installer.exe",
+                verify_url=release._installer_url_verifier("6.0.0"),
+            )
+        self.assertEqual(response.read_calls, 0)
+
     def _download(self, response, **changes):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

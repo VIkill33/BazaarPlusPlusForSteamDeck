@@ -32,19 +32,19 @@ class FakeReleaseSource:
 class FakeInstaller:
     def __init__(self, installed_version: Optional[str] = None) -> None:
         self.version = installed_version
-        self.calls: list[tuple[str, Path]] = []
+        self.calls: list[tuple[str, Path, Optional[str]]] = []
 
-    def install(self, release, game_path, runtime_dir, progress):
-        self.calls.append(("install", game_path))
+    def install(self, release, game_path, runtime_dir, progress, panel_font_size="medium"):
+        self.calls.append(("install", game_path, panel_font_size))
         self.version = release.version
         progress("安装完成", 100)
 
     def uninstall(self, game_path):
-        self.calls.append(("uninstall", game_path))
+        self.calls.append(("uninstall", game_path, None))
         self.version = None
 
     def reset_data(self, game_path):
-        self.calls.append(("reset_data", game_path))
+        self.calls.append(("reset_data", game_path, None))
 
     def installed_version(self, game_path):
         return self.version

@@ -1,6 +1,7 @@
 import io
 import os
 import stat
+import struct
 import tempfile
 import unittest
 import zipfile
@@ -181,7 +182,304 @@ class InstallTransactionTests(unittest.TestCase):
             self.assertIn(str(raised.exception), {"write failed", "rollback failed"})
 
 
+class SteamDeckPanelFontScaleTests(unittest.TestCase):
+    def test_valid_metadata_does_not_use_legacy_method_numbers(self):
+        # In 6.0 these old tokens identify unrelated methods, not UI helpers.
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "plugin.dll"
+            original = b"\x1f\x0c" + bytes.fromhex("28a40a0006")
+            plugin.write_bytes(original)
+            with mock.patch.object(installer, "_parse_dotnet_metadata", return_value=({}, {}, {}, {})):
+                self.assertEqual(installer._scale_steam_deck_panel_font_sizes(plugin, "medium"), 0)
+            self.assertEqual(plugin.read_bytes(), original)
+
+    def test_scales_direct_and_helper_panel_font_sizes_to_medium(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            direct_offset = 2
+            direct_tail = bytes.fromhex("285302000a6fbe03000a")
+            history_create_label_call = bytes.fromhex("28a40a0006")
+            history_style_code_cell_call = bytes.fromhex("28aa0a0006")
+            plugin.write_bytes(
+                b"AA"
+                + b"\x22"
+                + struct.pack("<f", 12.0)
+                + direct_tail
+                + b"BB"
+                + b"\x1f\x0a\x17\x28\x15\x01\x00\x06"
+                + history_create_label_call
+                + b"CC"
+                + b"\x1f\x10\x28\x15\x01\x00\x06"
+                + history_style_code_cell_call
+                + b"DD"
+                + b"\x1f\x0c"
+            )
+
+            changes = installer._scale_steam_deck_panel_font_sizes(plugin, "medium")
+
+            data = plugin.read_bytes()
+            self.assertEqual(changes, 3)
+            self.assertEqual(
+                struct.unpack("<f", data[direct_offset + 1 : direct_offset + 5])[0],
+                24.0,
+            )
+            self.assertIn(
+                b"\x1f\x14\x17\x28\x15\x01\x00\x06" + history_create_label_call,
+                data,
+            )
+            self.assertIn(
+                b"\x1f\x20\x28\x15\x01\x00\x06" + history_style_code_cell_call,
+                data,
+            )
+            self.assertTrue(data.endswith(b"\x1f\x0c"))
+
+    def test_small_font_size_keeps_original_payload(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            original = (
+                b"\x22"
+                + struct.pack("<f", 12.0)
+                + bytes.fromhex("285302000a6fbe03000a")
+                + b"\x1f\x0a\x17\x28\x15\x01\x00\x06"
+                + bytes.fromhex("28a40a0006")
+            )
+            plugin.write_bytes(original)
+
+            self.assertEqual(
+                installer._scale_steam_deck_panel_font_sizes(plugin, "small"), 0
+            )
+            self.assertEqual(plugin.read_bytes(), original)
+
+    def test_large_font_size_uses_triple_scale(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            helper_call = bytes.fromhex("28a40a0006")
+            plugin.write_bytes(b"\x1f\x0e\x17\x28\x15\x01\x00\x06" + helper_call)
+
+            self.assertEqual(
+                installer._scale_steam_deck_panel_font_sizes(plugin, "large"), 1
+            )
+            self.assertIn(
+                b"\x1f\x2a\x17\x28\x15\x01\x00\x06" + helper_call,
+                plugin.read_bytes(),
+            )
+
+    def test_large_direct_panel_font_size_is_capped_to_double_scale(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            direct_tail = bytes.fromhex("28b902000a6fe604000a")
+            plugin.write_bytes(b"\x22" + struct.pack("<f", 14.0) + direct_tail)
+
+            self.assertEqual(
+                installer._scale_steam_deck_panel_font_sizes(plugin, "large"), 1
+            )
+            self.assertEqual(struct.unpack("<f", plugin.read_bytes()[1:5])[0], 28.0)
+
+    def test_large_panel_font_size_also_scales_steam_deck_layout_heights(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            style_height_tail = bytes.fromhex("28b902000a6fbd02000a")
+            fixed_item_height_call = bytes.fromhex("6f040b000a")
+            plugin.write_bytes(
+                b"AA"
+                + b"\x22"
+                + struct.pack("<f", 22.0)
+                + style_height_tail
+                + b"BB"
+                + b"\x22"
+                + struct.pack("<f", 98.0)
+                + fixed_item_height_call
+                + b"CC"
+            )
+
+            self.assertEqual(
+                installer._scale_steam_deck_panel_font_sizes(plugin, "large"), 2
+            )
+            data = plugin.read_bytes()
+            self.assertEqual(
+                struct.unpack("<f", data[3:7])[0],
+                44.0,
+            )
+            fixed_height_offset = data.find(fixed_item_height_call) - 4
+            self.assertEqual(
+                struct.unpack("<f", data[fixed_height_offset : fixed_height_offset + 4])[
+                    0
+                ],
+                196.0,
+            )
+
+    def test_known_4_5_tokens_still_patch_when_metadata_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            plugin = Path(root_name) / "BazaarPlusPlus.dll"
+            direct_tail = bytes.fromhex("28b902000a6fe604000a")
+            history_create_label_call = bytes.fromhex("281d0e0006")
+            collection_create_label_call = bytes.fromhex("287a160006")
+            plugin.write_bytes(
+                b"\x22"
+                + struct.pack("<f", 14.0)
+                + direct_tail
+                + b"\x1f\x0c\x17\x28\x15\x01\x00\x06"
+                + history_create_label_call
+                + b"\x1f\x0b\x16\x28\x3c\x01\x00\x06"
+                + collection_create_label_call
+            )
+
+            self.assertEqual(
+                installer._scale_steam_deck_panel_font_sizes(plugin, "medium"), 3
+            )
+            data = plugin.read_bytes()
+            self.assertEqual(struct.unpack("<f", data[1:5])[0], 28.0)
+            self.assertIn(
+                b"\x1f\x18\x17\x28\x15\x01\x00\x06" + history_create_label_call,
+                data,
+            )
+            self.assertIn(
+                b"\x1f\x16\x16\x28\x3c\x01\x00\x06" + collection_create_label_call,
+                data,
+            )
+
+
+class SteamDeckUiConfigTests(unittest.TestCase):
+    def test_updates_existing_panel_font_without_touching_other_settings(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            game = Path(root_name)
+            config = game / installer.BPP_CONFIG
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                "\n".join(
+                    [
+                        "[StreamerMode]",
+                        "EnableNameOverride = true",
+                        "",
+                        "[Appearance]",
+                        "## Existing BepInEx comment",
+                        "UiFont = SansSerif",
+                        "",
+                        "[Hotkeys]",
+                        "ToggleHistoryPanel = <Keyboard>/f8",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            installer._apply_steam_deck_ui_defaults(game)
+
+            self.assertEqual(
+                config.read_text("utf-8"),
+                "\n".join(
+                    [
+                        "[StreamerMode]",
+                        "EnableNameOverride = true",
+                        "",
+                        "[Appearance]",
+                        "## Existing BepInEx comment",
+                        "UiFont = LxgwWenKai",
+                        "",
+                        "[Hotkeys]",
+                        "ToggleHistoryPanel = <Keyboard>/f8",
+                        "",
+                    ]
+                ),
+            )
+
+    def test_adds_panel_font_to_existing_appearance_section(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            game = Path(root_name)
+            config = game / installer.BPP_CONFIG
+            config.parent.mkdir(parents=True)
+            config.write_text("[Appearance]\nOtherSetting = true\n", "utf-8")
+
+            installer._apply_steam_deck_ui_defaults(game)
+
+            contents = config.read_text("utf-8")
+            self.assertIn(
+                "[Appearance]\nOtherSetting = true\n\n## BazaarPlusPlus", contents
+            )
+            self.assertIn("UiFont = LxgwWenKai\n", contents)
+
+    def test_creates_config_when_missing(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            game = Path(root_name)
+
+            installer._apply_steam_deck_ui_defaults(game)
+
+            self.assertEqual(
+                (game / installer.BPP_CONFIG).read_text("utf-8"),
+                "\n".join(
+                    [
+                        "[Appearance]",
+                        "",
+                        "## BazaarPlusPlus in-game panel font family.",
+                        "# Setting type: BppUiFontKind",
+                        "# Default value: LxgwWenKai",
+                        "# Acceptable values: LxgwWenKai, SansSerif",
+                        "UiFont = LxgwWenKai",
+                        "",
+                    ]
+                ),
+            )
+
+    def test_refuses_symlink_config_file(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            root = Path(root_name)
+            game = root / "game"
+            outside = root / "outside.cfg"
+            (game / "BepInEx/config").mkdir(parents=True)
+            outside.write_text("[Appearance]\nUiFont = LxgwWenKai\n", "utf-8")
+            (game / installer.BPP_CONFIG).symlink_to(outside)
+
+            with self.assertRaisesRegex(RuntimeError, "符号链接"):
+                installer._apply_steam_deck_ui_defaults(game)
+
+
 class InstallerOrchestrationTests(unittest.TestCase):
+    def test_reset_removes_current_and_legacy_data_without_touching_game(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            game = Path(root_name)
+            for name in ("BazaarPlusPlusV6", "BazaarPlusPlusV4"):
+                (game / name).mkdir()
+                (game / name / "data.json").write_text("saved")
+            (game / "TheBazaar.exe").write_bytes(b"game")
+            installer.Installer(UnusedReleaseSource()).reset_data(game)
+            self.assertFalse((game / "BazaarPlusPlusV6").exists())
+            self.assertFalse((game / "BazaarPlusPlusV4").exists())
+            self.assertEqual((game / "TheBazaar.exe").read_bytes(), b"game")
+
+    def test_reset_checks_all_data_paths_before_removing_any(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            game = Path(root_name)
+            (game / "BazaarPlusPlusV6").mkdir()
+            (game / "outside").mkdir()
+            (game / "BazaarPlusPlusV4").symlink_to(game / "outside", target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "符号链接"):
+                installer.Installer(UnusedReleaseSource()).reset_data(game)
+            self.assertTrue((game / "BazaarPlusPlusV6").exists())
+
+    def test_uninstall_removes_6_components_and_preserves_other_mods(self):
+        private = (
+            "BepInEx/plugins/BazaarPlusPlus.Core.dll",
+            "BepInEx/plugins/BazaarPlusPlus.history-database.json",
+            "BepInEx/plugins/BazaarPlusPlus.managed-manifest.txt",
+            "BepInEx/patchers/BazaarPlusPlus.Updater.dll",
+            "TheBazaar_Data/Plugins/x86_64/GfxPluginBppReplayMediaFoundation.dll",
+        )
+        for other_mod in (False, True):
+            with self.subTest(other_mod=other_mod), tempfile.TemporaryDirectory() as root_name:
+                game = Path(root_name)
+                for name in (*private, "BepInEx/plugins/Microsoft.Data.Sqlite.dll"):
+                    path = game / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b"component")
+                if other_mod:
+                    (game / "BepInEx/plugins/OtherMod.dll").write_bytes(b"other")
+                installer.Installer(UnusedReleaseSource()).uninstall(game)
+                for name in private:
+                    self.assertFalse((game / name).exists(), name)
+                self.assertEqual((game / "BepInEx/plugins/Microsoft.Data.Sqlite.dll").exists(), other_mod)
+                if other_mod:
+                    self.assertEqual((game / "BepInEx/plugins/OtherMod.dll").read_bytes(), b"other")
+
     def test_install_acquires_validates_applies_and_reports_progress(self):
         class PayloadReleaseSource:
             def latest(self):
@@ -223,7 +521,9 @@ class InstallerOrchestrationTests(unittest.TestCase):
                     ("下载官方安装包", 15),
                     ("提取 BepInEx payload", 74),
                     ("校验安装内容", 82),
+                    ("应用 Steam Deck 面板字号设置", 86),
                     ("写入游戏目录", 90),
+                    ("应用 Steam Deck UI 适配", 96),
                     ("安装完成", 100),
                 ],
             )

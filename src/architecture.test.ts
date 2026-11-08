@@ -76,10 +76,12 @@ test("frontend RPC, event, and app-id contracts remain stable", () => {
     "check_latest",
     "clear_launch_options_backup",
     "get_launch_options_backup",
+    "get_panel_font_size",
     "get_status",
     "install_latest",
     "remember_launch_options",
     "reset_data",
+    "set_panel_font_size",
     "uninstall_mod",
   ]);
 

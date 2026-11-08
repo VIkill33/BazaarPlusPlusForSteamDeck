@@ -8,7 +8,7 @@ from .application import BazaarPlusPlusManager
 from .installer import Installer
 from .models import LatestRelease, PluginStatus
 from .release import OfficialReleaseSource
-from .settings import LaunchOptionsBackupStore
+from .settings import LaunchOptionsBackupStore, PanelFontSizeStore
 from .steam import LinuxSteamEnvironment
 
 
@@ -64,6 +64,7 @@ class Plugin:
             runtime_dir=runtime_dir,
         )
         self._settings = LaunchOptionsBackupStore(settings_dir)
+        self._font_size_settings = PanelFontSizeStore(settings_dir)
         decky.logger.info("BazaarPlusPlus Steam Deck plugin loaded")
 
     async def _unload(self) -> None:
@@ -107,9 +108,18 @@ class Plugin:
             )
             future.result()
 
-        status = await asyncio.to_thread(self._manager.install, progress)
+        preset = await asyncio.to_thread(self._font_size_settings.get)
+        status = await asyncio.to_thread(self._manager.install, progress, preset)
         decky.logger.info("Installed BazaarPlusPlus to %s", status.game_path)
         return _status_to_wire(status)
+
+    async def get_panel_font_size(self) -> str:
+        return await asyncio.to_thread(self._font_size_settings.get)
+
+    async def set_panel_font_size(self, preset: str) -> str:
+        saved = await asyncio.to_thread(self._font_size_settings.save, preset)
+        decky.logger.info("Set BazaarPlusPlus panel font size preset to %s", saved)
+        return saved
 
     async def uninstall_mod(self) -> dict[str, object]:
         status = await asyncio.to_thread(self._manager.uninstall)

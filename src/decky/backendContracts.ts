@@ -16,6 +16,8 @@ export type LaunchOptionsBackup = {
   managed: string;
 } | null;
 
+export type PanelFontSizePreset = "small" | "medium" | "large";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -70,4 +72,11 @@ export function decodeLaunchOptionsBackup(value: unknown): LaunchOptionsBackup {
     throw new Error("后端返回了无效的启动参数备份");
   }
   return { original: value.original, managed: value.managed };
+}
+
+export function decodePanelFontSizePreset(value: unknown): PanelFontSizePreset {
+  if (value === "small" || value === "medium" || value === "large") {
+    return value;
+  }
+  throw new Error("后端返回了无效的面板字号设置");
 }

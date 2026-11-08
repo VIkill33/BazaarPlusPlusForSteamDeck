@@ -17,6 +17,7 @@ from .models import Release
 
 RELEASE_MANIFEST_URL = "https://bppinstaller.bazaarplusplus.com/latest.json"
 RELEASE_HOST = "bppinstaller.bazaarplusplus.com"
+RELEASE_CDN_HOST = "cdn.bazaarplusplus.com"
 RELEASE_PLATFORM = "windows-x86_64"
 SEVENZIP_URL = (
     "https://github.com/ip7z/7zip/releases/download/26.02/"
@@ -50,7 +51,7 @@ def _package_version() -> str:
             return version
     except (OSError, json.JSONDecodeError):
         pass
-    return "0.2.0"
+    return "0.3.1"
 
 
 USER_AGENT = f"BazaarPlusPlusForSteamDeck/{_package_version()}"
@@ -104,11 +105,20 @@ def _is_valid_release_version(version: str) -> bool:
 
 
 def _validate_installer_url(url: str, expected_version: str) -> None:
-    parsed = _validated_release_url(url)
+    # Each official host has its own path layout; do not mix their prefixes.
+    parsed = _validated_https_url(
+        url,
+        RELEASE_CDN_HOST if urllib.parse.urlsplit(url).hostname == RELEASE_CDN_HOST
+        else RELEASE_HOST,
+    )
     try:
         decoded_path = urllib.parse.unquote(parsed.path, errors="strict")
     except UnicodeDecodeError as error:
         raise RuntimeError("官方 Windows 安装器 URL 无效") from error
+    if parsed.hostname == RELEASE_CDN_HOST:
+        if not decoded_path.startswith("/installer/"):
+            raise RuntimeError("官方 Windows 安装器 URL 无效")
+        decoded_path = decoded_path[len("/installer"):]
     parts = decoded_path.split("/")
     path_version = parts[1] if len(parts) > 1 else ""
     if (

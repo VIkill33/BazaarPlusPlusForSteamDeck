@@ -2,9 +2,26 @@ import { ButtonItem, PanelSection, PanelSectionRow } from "@decky/ui";
 
 import type {
   LatestRelease,
+  PanelFontSizePreset,
   PluginStatus,
 } from "../../decky/backendClient";
 import { useInstaller } from "./useInstaller";
+
+const FONT_SIZE_LABELS: Record<PanelFontSizePreset, string> = {
+  small: "小（原始字号）",
+  medium: "中（2 倍字号）",
+  large: "大（3 倍字号）",
+};
+
+function nextFontSizePreset(preset: PanelFontSizePreset): PanelFontSizePreset {
+  if (preset === "small") {
+    return "medium";
+  }
+  if (preset === "medium") {
+    return "large";
+  }
+  return "small";
+}
 
 function StatusCard({
   status,
@@ -65,7 +82,15 @@ function StatusCard({
 
 export function PluginPanel() {
   const controller = useInstaller();
-  const { status, statusError, latest, busy, progress, repairMode } = controller;
+  const {
+    status,
+    statusError,
+    latest,
+    busy,
+    progress,
+    repairMode,
+    panelFontSize,
+  } = controller;
   const updateAvailable = latest?.update_available ?? false;
   return (
     <>
@@ -78,6 +103,20 @@ export function PluginPanel() {
             <div style={{ opacity: 0.75 }}>{progress}</div>
           </PanelSectionRow>
         )}
+      </PanelSection>
+      <PanelSection title="游戏内 UI">
+        <PanelSectionRow>
+          <ButtonItem
+            layout="below"
+            disabled={busy}
+            description="调整百科等支持的面板字号；6.x 历史面板保留官方布局。修改后需重新安装 / 修复。"
+            onClick={() =>
+              void controller.setPanelFontSize(nextFontSizePreset(panelFontSize))
+            }
+          >
+            面板字号：{FONT_SIZE_LABELS[panelFontSize]}
+          </ButtonItem>
+        </PanelSectionRow>
       </PanelSection>
       <PanelSection title="操作">
         <PanelSectionRow>

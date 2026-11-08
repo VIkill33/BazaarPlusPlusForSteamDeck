@@ -23,13 +23,17 @@ STATUS = PluginStatus(True, "/game", False, True, "4.4.3.prod")
 
 
 class FakeManager:
+    def __init__(self):
+        self.installed_font_size = None
+
     def status(self):
         return STATUS
 
     def check_latest(self):
         return LatestRelease("4.4.3", False)
 
-    def install(self, progress):
+    def install(self, progress, panel_font_size="medium"):
+        self.installed_font_size = panel_font_size
         progress("读取官方发布信息", 5)
         progress("安装完成", 100)
         return STATUS
@@ -55,12 +59,27 @@ class FakeStore:
         self.backup = None
 
 
+class FakeFontSizeStore:
+    def __init__(self):
+        self.preset = "medium"
+
+    def get(self):
+        return self.preset
+
+    def save(self, preset):
+        if preset not in {"small", "medium", "large"}:
+            raise RuntimeError("invalid")
+        self.preset = preset
+        return preset
+
+
 class DeckyAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.plugin = decky_adapter.Plugin()
         self.plugin._loop = asyncio.get_running_loop()
         self.plugin._manager = FakeManager()
         self.plugin._settings = FakeStore()
+        self.plugin._font_size_settings = FakeFontSizeStore()
         decky.emit.reset_mock()
 
     async def test_status_and_latest_wire_shapes(self):
@@ -89,10 +108,15 @@ class DeckyAdapterTests(unittest.IsolatedAsyncioTestCase):
         )
         await self.plugin.clear_launch_options_backup()
         self.assertIsNone(await self.plugin.get_launch_options_backup())
+        self.assertEqual(await self.plugin.get_panel_font_size(), "medium")
+        self.assertEqual(await self.plugin.set_panel_font_size("large"), "large")
+        self.assertEqual(await self.plugin.get_panel_font_size(), "large")
 
     async def test_install_bridges_progress_from_worker_thread(self):
+        await self.plugin.set_panel_font_size("large")
         result = await self.plugin.install_latest()
         self.assertTrue(result["installed"])
+        self.assertEqual(self.plugin._manager.installed_font_size, "large")
         self.assertEqual(
             decky.emit.await_args_list,
             [

@@ -6,7 +6,7 @@ Install and manage the [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus
 
 [中文](README.md) · [Website](https://bazaarplusplus.com) · [Tutorial](https://bazaarplusplus.com/tutorial) · [BazaarPlusPlus main repo](https://github.com/cauyxy/BazaarPlusPlus) · [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
 
-[![Version](https://img.shields.io/badge/version-0.2.0-6dd9a0?style=flat-square)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.1-6dd9a0?style=flat-square)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Steam%20Deck-c1875a?style=flat-square)](https://store.steampowered.com/steamdeck)
 [![Decky Loader](https://img.shields.io/badge/Decky%20Loader-plugin-3d5afe?style=flat-square)](https://github.com/SteamDeckHomebrew/decky-loader)
@@ -20,6 +20,14 @@ Install and manage the [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus
 BazaarPlusPlus for Steam Deck is a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin that installs, updates, repairs, and removes the BazaarPlusPlus mod for *The Bazaar* on Steam Deck. This repository contains only the Steam Deck plugin; see the [BazaarPlusPlus upstream repository](https://github.com/cauyxy/BazaarPlusPlus) for the mod itself, its in-game features, and desktop installers.
 
 The plugin does not bundle the mod or installer source. During installation it reads the release manifest from the official BazaarPlusPlus release host, downloads the latest Windows x86_64 installer, extracts `BepInExSource/BepInEx.zip` from it with 7-Zip, validates the installation payload, writes it into the Steam game directory, and configures the launch option Proton needs.
+
+## 6.x compatibility
+
+Decky plugin `0.3.1` has been verified against the official mod `6.0.0` installer. It supports the new official CDN paths and installation, upgrade, and removal of the added components. The plugin and mod have independent version numbers.
+
+Small, medium, and large font presets apply on installation or reinstallation. Patches resolve supported collection and other UI sites from assembly metadata; the redesigned 6.x history panel retains its official font sizes and layout. The collection artwork fix has been confirmed on a physical Steam Deck; other screens, controller input, and replay features still need further verification.
+
+`0.3.1` fixes collection cards failing to load after the game removed `CardAssetDataSO.cardMaterial`. For official mod `6.0.0`, it bypasses the incompatible mod cache and uses the game's native artwork loader. Reinstall / repair the mod from the plugin panel after updating Decky to apply the fix; saved data does not need resetting. Native loading may use more resources when browsing large collections.
 
 ## Quick start
 
@@ -42,7 +50,7 @@ Existing launch options are preserved where possible. When the mod is removed, t
 - **Install / update / reinstall**: reads the official release manifest, compares it against the installed version, and installs the latest release.
 - **Game detection**: locates *The Bazaar* in Steam libraries on internal storage and SD cards.
 - **Repair launch options**: adds or corrects the launch option required by Proton.
-- **Reset local data**: removes the `BazaarPlusPlusV4/` data directory from the game directory.
+- **Reset local data**: removes the `BazaarPlusPlusV6/` and legacy `BazaarPlusPlusV4/` data directories from the game directory.
 - **Uninstall**: removes mod files, preserving shared dependencies when other BepInEx plugins exist.
 - **Progress reporting**: shows the current installation stage and download progress.
 
@@ -52,8 +60,8 @@ Exit the game before installing, repairing, resetting, or removing the mod. Dele
 
 While downloading and writing files, the plugin backend:
 
-- Accepts only HTTPS URLs on the official release host and expected paths
-- Rejects cross-host redirects and malformed paths
+- Accepts only HTTPS URLs on the official release host and CDN with host-specific paths
+- Rejects redirects to unofficial hosts and malformed paths
 - Verifies the downloaded 7-Zip tool against a fixed SHA-256 digest
 - Limits manifest, download, and extracted payload sizes
 - Rejects ZIP path traversal and symbolic links

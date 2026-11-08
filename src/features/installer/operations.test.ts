@@ -37,6 +37,12 @@ function backend(overrides: Partial<BackendClient> = {}): BackendClient {
     async resetData() {
       return installed;
     },
+    async getPanelFontSize() {
+      return "medium";
+    },
+    async setPanelFontSize(preset) {
+      return preset;
+    },
     async rememberLaunchOptions() {},
     async getLaunchOptionsBackup() {
       return null;

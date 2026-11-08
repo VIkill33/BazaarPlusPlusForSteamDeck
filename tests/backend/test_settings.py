@@ -2,7 +2,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from backend.bpp.settings import LaunchOptionsBackup, LaunchOptionsBackupStore
+from backend.bpp.settings import (
+    LaunchOptionsBackup,
+    LaunchOptionsBackupStore,
+    PanelFontSizeStore,
+)
 
 
 class LaunchOptionsBackupStoreTests(unittest.TestCase):
@@ -45,3 +49,33 @@ class LaunchOptionsBackupStoreTests(unittest.TestCase):
         self.store.save("original", "managed")
         self.store.clear()
         self.assertIsNone(self.store.get())
+
+
+class PanelFontSizeStoreTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.settings_dir = Path(self.temporary.name)
+        self.store = PanelFontSizeStore(self.settings_dir)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def test_defaults_to_medium(self):
+        self.assertEqual(self.store.get(), "medium")
+
+    def test_saves_and_reads_valid_presets(self):
+        for preset in ("small", "medium", "large"):
+            with self.subTest(preset=preset):
+                self.assertEqual(self.store.save(preset), preset)
+                self.assertEqual(self.store.get(), preset)
+
+    def test_ignores_invalid_file_contents(self):
+        path = self.settings_dir / "font-size.json"
+        for invalid in ("{", "[]", '{"preset":"huge"}', '{"preset":3}'):
+            with self.subTest(invalid=invalid):
+                path.write_text(invalid, "utf-8")
+                self.assertEqual(self.store.get(), "medium")
+
+    def test_rejects_invalid_preset(self):
+        with self.assertRaisesRegex(RuntimeError, "字号"):
+            self.store.save("huge")

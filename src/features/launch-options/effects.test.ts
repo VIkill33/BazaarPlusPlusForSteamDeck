@@ -27,6 +27,12 @@ function fixtures(
     async resetData() {
       throw new Error("not used");
     },
+    async getPanelFontSize() {
+      throw new Error("not used");
+    },
+    async setPanelFontSize() {
+      throw new Error("not used");
+    },
     async rememberLaunchOptions() {
       calls.push("save");
     },

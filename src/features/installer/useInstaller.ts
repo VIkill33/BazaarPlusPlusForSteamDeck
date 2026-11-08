@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   backendClient,
   type LatestRelease,
+  type PanelFontSizePreset,
   type PluginStatus,
 } from "../../decky/backendClient";
 import { createLaunchOptionsManager } from "../launch-options/manager";
@@ -29,10 +30,12 @@ export type InstallerController = {
   busy: boolean;
   progress: string;
   repairMode: "configure" | "restore" | null;
+  panelFontSize: PanelFontSizePreset;
   refresh(): Promise<void>;
   install(): Promise<void>;
   uninstall(): Promise<void>;
   resetData(): Promise<void>;
+  setPanelFontSize(preset: PanelFontSizePreset): Promise<void>;
   repairLaunchOptions(): Promise<void>;
 };
 
@@ -42,6 +45,8 @@ export function useInstaller(): InstallerController {
   const [latest, setLatest] = useState<LatestRelease | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
+  const [panelFontSize, setPanelFontSizeState] =
+    useState<PanelFontSizePreset>("medium");
   const [repairMode, setRepairMode] = useState<
     "configure" | "restore" | null
   >(null);
@@ -70,6 +75,23 @@ export function useInstaller(): InstallerController {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void backendClient
+      .getPanelFontSize()
+      .then((preset) => {
+        if (!cancelled) {
+          setPanelFontSizeState(preset);
+        }
+      })
+      .catch((error) => {
+        console.warn("Unable to load BazaarPlusPlus panel font size", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     return subscribeInstallProgress(
@@ -153,6 +175,23 @@ export function useInstaller(): InstallerController {
     }
   }, [refresh]);
 
+  const setPanelFontSize = useCallback(async (preset: PanelFontSizePreset) => {
+    try {
+      const saved = await backendClient.setPanelFontSize(preset);
+      setPanelFontSizeState(saved);
+      toaster.toast({
+        title: "BazaarPlusPlus",
+        body: "面板字号设置已保存。重新安装 / 修复后会应用到游戏内。",
+      });
+    } catch (error) {
+      toaster.toast({
+        title: "字号设置保存失败",
+        body: String(error),
+        critical: true,
+      });
+    }
+  }, []);
+
   const repairLaunchOptions = useCallback(async () => {
     try {
       if (repairMode === "restore") {
@@ -184,10 +223,12 @@ export function useInstaller(): InstallerController {
     busy,
     progress,
     repairMode,
+    panelFontSize,
     refresh,
     install,
     uninstall,
     resetData,
+    setPanelFontSize,
     repairLaunchOptions,
   };
 }

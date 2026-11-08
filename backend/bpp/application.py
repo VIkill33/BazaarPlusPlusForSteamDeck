@@ -46,7 +46,9 @@ class BazaarPlusPlusManager:
             ),
         )
 
-    def install(self, progress: ProgressReporter) -> PluginStatus:
+    def install(
+        self, progress: ProgressReporter, panel_font_size: str = "medium"
+    ) -> PluginStatus:
         with self._mutation_lock:
             game_path = self._preflight(
                 "未找到 Steam 版《The Bazaar》。请先安装并启动一次游戏。"
@@ -58,6 +60,7 @@ class BazaarPlusPlusManager:
                 game_path,
                 self._runtime_dir,
                 progress,
+                panel_font_size,
             )
             return self.status()
 

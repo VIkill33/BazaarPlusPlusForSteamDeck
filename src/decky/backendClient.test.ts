@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   decodeLatestRelease,
   decodeLaunchOptionsBackup,
+  decodePanelFontSizePreset,
   decodePluginStatus,
 } from "./backendContracts.js";
 
@@ -33,6 +34,9 @@ test("decodes the backend wire contracts", () => {
     decodeLaunchOptionsBackup({ original: "%command%", managed: "managed" }),
     { original: "%command%", managed: "managed" },
   );
+  assert.equal(decodePanelFontSizePreset("small"), "small");
+  assert.equal(decodePanelFontSizePreset("medium"), "medium");
+  assert.equal(decodePanelFontSizePreset("large"), "large");
 });
 
 test("rejects malformed backend payloads", () => {
@@ -44,5 +48,8 @@ test("rejects malformed backend payloads", () => {
   }
   for (const value of [{}, { original: "x", managed: 1 }]) {
     assert.throws(() => decodeLaunchOptionsBackup(value), /无效的启动参数备份/);
+  }
+  for (const value of [null, "huge", 2]) {
+    assert.throws(() => decodePanelFontSizePreset(value), /无效的面板字号设置/);
   }
 });

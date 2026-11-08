@@ -6,7 +6,7 @@
 
 [English](README_en.md) · [官网](https://bazaarplusplus.com) · [使用教程](https://bazaarplusplus.com/tutorial) · [BazaarPlusPlus 主仓库](https://github.com/cauyxy/BazaarPlusPlus) · [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
 
-[![Version](https://img.shields.io/badge/version-0.2.0-6dd9a0?style=flat-square)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.1-6dd9a0?style=flat-square)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Steam%20Deck-c1875a?style=flat-square)](https://store.steampowered.com/steamdeck)
 [![Decky Loader](https://img.shields.io/badge/Decky%20Loader-plugin-3d5afe?style=flat-square)](https://github.com/SteamDeckHomebrew/decky-loader)
@@ -20,6 +20,14 @@
 BazaarPlusPlus for Steam Deck 是一个 [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) 插件，负责在 Steam Deck 上安装、更新、修复和卸载《The Bazaar》的 BazaarPlusPlus 模组。本仓库仅包含 Steam Deck 插件；模组本体、游戏内功能和桌面端安装器的相关信息见 [BazaarPlusPlus 主仓库](https://github.com/cauyxy/BazaarPlusPlus)。
 
 本插件不内置模组或安装器源码：安装时它从 BazaarPlusPlus 官方发布源读取发布清单，下载最新版 Windows x86_64 安装器，用 7-Zip 从中提取 `BepInExSource/BepInEx.zip`，校验安装内容后写入 Steam 游戏目录，并为 Proton 配置所需的启动参数。
+
+## 6.x 兼容性
+
+Decky 插件 `0.3.1` 已针对官方模组 `6.0.0` 安装包验证，支持新版官方 CDN 下载路径和新增组件的安装、升级与卸载。插件与模组使用独立版本号。
+
+面板字号提供小、中、大三个档位，安装或重新安装后生效。补丁根据程序集信息定位百科等支持的界面；6.x 历史面板使用新版实现，保留官方字号和布局。图鉴卡图修复已通过 Steam Deck 实机确认；其他界面、手柄输入和回放功能仍需进一步验证。
+
+`0.3.1` 修复了游戏更新后图鉴因 `CardAssetDataSO.cardMaterial` 字段被移除而无法加载卡牌的问题：对官方 `6.0.0` 使用游戏原生卡图加载流程，跳过不兼容的模组缓存。升级 Decky 插件后，需要在面板中重新安装 / 修复模组才会应用；无需重置数据。此兼容方式可能增加大范围浏览时的资源开销。
 
 ## 快速开始
 
@@ -42,7 +50,7 @@ WINEDLLOVERRIDES="winhttp=n,b" %command%
 - **安装 / 更新 / 重装**：读取官方发布清单，比较本地已装版本并安装最新版。
 - **游戏目录检测**：自动在内置存储和 SD 卡中的 Steam 库里定位《The Bazaar》。
 - **修复启动参数**：补充或修正 Proton 所需的启动参数。
-- **重置本地数据**：删除游戏目录下的 `BazaarPlusPlusV4/` 数据目录。
+- **重置本地数据**：删除游戏目录下的 `BazaarPlusPlusV6/` 及旧版 `BazaarPlusPlusV4/` 数据目录。
 - **卸载模组**：移除模组文件；检测到其他 BepInEx 插件时保留共享依赖。
 - **进度反馈**：安装过程中显示当前阶段和下载进度。
 
@@ -52,8 +60,8 @@ WINEDLLOVERRIDES="winhttp=n,b" %command%
 
 插件后端在下载与写入过程中会：
 
-- 只接受官方发布主机上的 HTTPS URL 和预期路径
-- 拒绝跨主机重定向和异常路径
+- 只接受官方发布主机及 CDN 上的 HTTPS URL 和对应预期路径
+- 拒绝重定向至非官方主机及异常路径
 - 按固定 SHA-256 摘要校验下载的 7-Zip 工具
 - 限制发布清单、下载文件和解压内容的大小
 - 拒绝 ZIP 路径穿越和符号链接
