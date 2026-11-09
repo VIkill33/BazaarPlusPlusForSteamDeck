@@ -1,6 +1,7 @@
 import io
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -41,6 +42,32 @@ class FakeResponse:
 
 
 class ReleaseSourceTests(unittest.TestCase):
+    def test_falls_back_to_verified_github_release_when_manifest_is_unavailable(self):
+        source = release.OfficialReleaseSource(Path("/runtime"))
+        github = Release(
+            "6.0.0",
+            "https://github.com/BazaarPlusPlus/BazaarPlusPlus/releases/download/6.0.0/BazaarPlusPlus_6.0.0_x64-setup.exe",
+            "a" * 64,
+        )
+        with mock.patch.object(release, "_latest_release", side_effect=urllib.error.URLError("DNS failed")), mock.patch.object(
+            release, "_github_latest_release", return_value=github
+        ):
+            self.assertEqual(source.latest(), github)
+
+    def test_rejects_github_release_without_a_matching_digest(self):
+        asset_url = "https://github.com/BazaarPlusPlus/BazaarPlusPlus/releases/download/6.0.0/BazaarPlusPlus_6.0.0_x64-setup.exe"
+        manifest = {"tag_name": "6.0.0", "assets": [{"name": "BazaarPlusPlus_6.0.0_x64-setup.exe", "browser_download_url": asset_url, "digest": None}]}
+        with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+            release._parse_github_release(manifest)
+
+    def test_accepts_only_matching_github_release_asset(self):
+        asset_url = "https://github.com/BazaarPlusPlus/BazaarPlusPlus/releases/download/6.0.0/BazaarPlusPlus_6.0.0_x64-setup.exe"
+        manifest = {"tag_name": "6.0.0", "assets": [{"name": "BazaarPlusPlus_6.0.0_x64-setup.exe", "browser_download_url": asset_url, "digest": "sha256:" + "a" * 64}]}
+        self.assertEqual(release._parse_github_release(manifest), Release("6.0.0", asset_url, "a" * 64))
+        manifest["assets"][0]["browser_download_url"] = "https://evil.example/installer.exe"
+        with self.assertRaisesRegex(RuntimeError, "URL"):
+            release._parse_github_release(manifest)
+
     def test_parses_official_6_release_from_cdn(self):
         self.assertEqual(
             release._parse_release_manifest({
@@ -114,7 +141,7 @@ class ReleaseSourceTests(unittest.TestCase):
         self.assertEqual(latest.call_count, 2)
 
     def test_user_agent_uses_package_version(self):
-        self.assertEqual(release.USER_AGENT, "BazaarPlusPlusForSteamDeck/0.3.1")
+        self.assertEqual(release.USER_AGENT, "BazaarPlusPlusForSteamDeck/0.3.2")
 
     def test_rejects_missing_or_invalid_manifest_fields(self):
         valid = {

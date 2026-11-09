@@ -6,6 +6,7 @@ from typing import Optional
 class Release:
     version: str
     installer_url: str
+    sha256: Optional[str] = None
 
 
 @dataclass(frozen=True)

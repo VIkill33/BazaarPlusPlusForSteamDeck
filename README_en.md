@@ -29,6 +29,8 @@ Small, medium, and large font presets apply on installation or reinstallation. P
 
 `0.3.1` fixes collection cards failing to load after the game removed `CardAssetDataSO.cardMaterial`. For official mod `6.0.0`, it bypasses the incompatible mod cache and uses the game's native artwork loader. Reinstall / repair the mod from the plugin panel after updating Decky to apply the fix; saved data does not need resetting. Native loading may use more resources when browsing large collections.
 
+`0.3.2` falls back to BazaarPlusPlus's official GitHub release when the release manifest service is unavailable. It verifies the installer against the release asset's SHA-256 digest so installation and repair remain available from the plugin panel.
+
 ## Quick start
 
 1. Install and launch *The Bazaar* (Steam version, App ID `1617400`) at least once, then exit the game completely.
@@ -60,7 +62,7 @@ Exit the game before installing, repairing, resetting, or removing the mod. Dele
 
 While downloading and writing files, the plugin backend:
 
-- Accepts only HTTPS URLs on the official release host and CDN with host-specific paths
+- Accepts HTTPS release URLs only on the official host and CDN with host-specific paths; the GitHub fallback must match the official repository, version, and SHA-256 digest
 - Rejects redirects to unofficial hosts and malformed paths
 - Verifies the downloaded 7-Zip tool against a fixed SHA-256 digest
 - Limits manifest, download, and extracted payload sizes

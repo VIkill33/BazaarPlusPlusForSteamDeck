@@ -7,6 +7,7 @@ import ssl
 import subprocess
 import tarfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,7 @@ RELEASE_MANIFEST_URL = "https://bppinstaller.bazaarplusplus.com/latest.json"
 RELEASE_HOST = "bppinstaller.bazaarplusplus.com"
 RELEASE_CDN_HOST = "cdn.bazaarplusplus.com"
 RELEASE_PLATFORM = "windows-x86_64"
+GITHUB_RELEASE_API = "https://api.github.com/repos/BazaarPlusPlus/BazaarPlusPlus/releases/latest"
 SEVENZIP_URL = (
     "https://github.com/ip7z/7zip/releases/download/26.02/"
     "7z2602-linux-x64.tar.xz"
@@ -51,7 +53,7 @@ def _package_version() -> str:
             return version
     except (OSError, json.JSONDecodeError):
         pass
-    return "0.3.1"
+    return "0.3.2"
 
 
 USER_AGENT = f"BazaarPlusPlusForSteamDeck/{_package_version()}"
@@ -183,6 +185,47 @@ def _parse_release_manifest(value: dict[str, Any]) -> Release:
 
 def _latest_release() -> Release:
     return _parse_release_manifest(_request_json(RELEASE_MANIFEST_URL))
+
+
+def _parse_github_release(value: dict[str, Any]) -> Release:
+    version = value.get("tag_name")
+    if not isinstance(version, str) or not _is_valid_release_version(version):
+        raise RuntimeError("GitHub 发布信息缺少有效版本")
+    filename = f"BazaarPlusPlus_{version}_x64-setup.exe"
+    expected_url = (
+        "https://github.com/BazaarPlusPlus/BazaarPlusPlus/releases/download/"
+        f"{version}/{filename}"
+    )
+    assets = value.get("assets")
+    if not isinstance(assets, list):
+        raise RuntimeError("GitHub 发布信息缺少安装包")
+    for asset in assets:
+        if not isinstance(asset, dict) or asset.get("name") != filename:
+            continue
+        if asset.get("browser_download_url") != expected_url:
+            raise RuntimeError("GitHub 安装包 URL 无效")
+        digest = asset.get("digest")
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest):
+            raise RuntimeError("GitHub 安装包缺少 SHA-256 校验值")
+        return Release(version, expected_url, digest[7:].lower())
+    raise RuntimeError("GitHub 发布信息缺少 Windows 安装包")
+
+
+def _github_latest_release() -> Release:
+    request = urllib.request.Request(
+        GITHUB_RELEASE_API,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT},
+    )
+    with urllib.request.urlopen(request, timeout=30, context=_ssl_context()) as response:
+        if response.status != 200 or response.geturl() != GITHUB_RELEASE_API:
+            raise RuntimeError("GitHub 发布信息请求失败")
+        data = response.read(MAX_MANIFEST_BYTES + 1)
+    if len(data) > MAX_MANIFEST_BYTES:
+        raise RuntimeError("GitHub 发布信息超过安全大小限制")
+    value = json.loads(data)
+    if not isinstance(value, dict):
+        raise RuntimeError("GitHub 发布信息格式无效")
+    return _parse_github_release(value)
 
 
 def _sha256(path: Path) -> str:
@@ -332,7 +375,15 @@ class OfficialReleaseSource:
         now = self._clock()
         if self._cache and now - self._cache[0] < CACHE_TTL_SECONDS:
             return self._cache[1]
-        release = _latest_release()
+        try:
+            release = _latest_release()
+        except (urllib.error.URLError, TimeoutError):
+            try:
+                release = _github_latest_release()
+            except Exception as fallback_error:
+                raise RuntimeError(
+                    "官方发布服务和 GitHub 备用来源均无法访问，请检查网络后重试"
+                ) from fallback_error
         self._cache = (self._clock(), release)
         return release
 
@@ -350,11 +401,19 @@ class OfficialReleaseSource:
         def download_progress(value: int) -> None:
             progress("下载官方安装包", 15 + value * 55 // 100)
 
-        _download(
-            release.installer_url,
-            installer,
-            verify_url=_installer_url_verifier(release.version),
-            progress=download_progress,
-        )
+        if release.sha256 is not None:
+            _download(
+                release.installer_url,
+                installer,
+                expected_sha256=release.sha256,
+                progress=download_progress,
+            )
+        else:
+            _download(
+                release.installer_url,
+                installer,
+                verify_url=_installer_url_verifier(release.version),
+                progress=download_progress,
+            )
         progress("提取 BepInEx payload", 74)
         return _extract_installer(sevenzip, installer, working_dir)
